@@ -5,3 +5,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "thursday"
+  - package-ecosystem: "maven"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
