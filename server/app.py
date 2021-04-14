@@ -1,9 +1,13 @@
+import json
 import uuid
 
 from flask import Flask, request, Response, render_template, session
+from hazelcast import HazelcastClient
 
 app = Flask(__name__)
 app.secret_key = 'really really secret key for a demo'
+client = HazelcastClient()
+analytics = client.get_map("analytics")
 
 
 @app.route('/')
@@ -20,6 +24,7 @@ def click():
     app.logger.info('Event received: %s', data)
     data['session'] = session_id.hex
     app.logger.info('Event enriched: %s', data)
+    analytics.set(uuid.uuid4(), json.dumps(data))
     return Response(status=202)
 
 
