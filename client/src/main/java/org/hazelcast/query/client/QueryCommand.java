@@ -2,11 +2,11 @@ package org.hazelcast.query.client;
 
 import java.util.Collection;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.nio.serialization.GenericRecord;
 import com.hazelcast.query.Predicates;
-import org.json.JSONObject;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
@@ -18,7 +18,16 @@ import org.springframework.shell.table.TableModelBuilder;
 @ShellComponent
 public class QueryCommand {
 
-    private static final String[] FIELDS = new String[] { "component", "type", "x", "y", "event", "timestamp", "instant", "session" };
+    private static final ModelEnricher[] ENRICHERS = new ModelEnricher[]{
+            new ModelEnricher("component", record -> record.getString("component")),
+            new ModelEnricher("type", record -> record.getString("type")),
+            new ModelEnricher("x", record -> record.getInt("x")),
+            new ModelEnricher("y", record -> record.getInt("y")),
+            new ModelEnricher("event", record -> record.getString("event")),
+            new ModelEnricher("timestamp", record -> record.getLong("timestamp")),
+            new ModelEnricher("instant", record -> record.getLong("instant")),
+            new ModelEnricher("session", record -> record.getString("session"))
+    };
 
     private final HazelcastInstance client;
 
@@ -39,33 +48,39 @@ public class QueryCommand {
         var map = client.getMap("analytics");
         var entry = Predicates.newPredicateBuilder().getEntryObject();
         var predicate = entry.get("component").equal(name);
-        Collection<HazelcastJsonValue> values = map.values(predicate);
+        Collection<GenericRecord> values = map.values(predicate);
         modelBuilder.addRow();
-        Stream.of(FIELDS).forEach(modelBuilder::addValue);
+        Stream.of(ENRICHERS)
+                .map(ModelEnricher::getFieldName)
+                .forEach(modelBuilder::addValue);
         values.stream()
-                .map(HazelcastJsonValue::toString)
-                .map(JSONObject::new)
-                .forEach(json -> {
+                .forEach(record -> {
                     modelBuilder.addRow();
-                    Stream.of(FIELDS).forEach(field -> new ModelEnricher(field).accept(modelBuilder, json));
+                    Stream.of(ENRICHERS).forEach(enricher -> enricher.accept(modelBuilder, record));
                 });
         var builder = new TableBuilder(modelBuilder.build());
         builder.addFullBorder(BorderStyle.oldschool);
         return builder.build();
     }
 
-    private static class ModelEnricher implements BiConsumer<TableModelBuilder<Object>, JSONObject> {
+    private static class ModelEnricher implements BiConsumer<TableModelBuilder<Object>, GenericRecord> {
 
         private final String fieldName;
+        private final Function<GenericRecord, Object> extractor;
 
-        private ModelEnricher(String fieldName) {
+        private ModelEnricher(String fieldName, Function<GenericRecord, Object> extractor) {
             this.fieldName = fieldName;
+            this.extractor = extractor;
+        }
+
+        public String getFieldName() {
+            return fieldName;
         }
 
         @Override
-        public void accept(TableModelBuilder<Object> modelBuilder, JSONObject json) {
-            if (json.has(fieldName)) {
-                modelBuilder.addValue(json.get(fieldName));
+        public void accept(TableModelBuilder<Object> modelBuilder, GenericRecord record) {
+            if (record.hasField(fieldName)) {
+                modelBuilder.addValue(extractor.apply(record));
             } else {
                 modelBuilder.addValue(null);
             }
