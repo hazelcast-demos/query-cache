@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.HazelcastJsonValue;
 import com.hazelcast.query.Predicates;
 import org.json.JSONObject;
 import org.springframework.shell.standard.ShellComponent;
@@ -38,10 +39,11 @@ public class QueryCommand {
         var map = client.getMap("analytics");
         var entry = Predicates.newPredicateBuilder().getEntryObject();
         var predicate = entry.get("component").equal(name);
-        Collection<String> values = map.values(predicate);
+        Collection<HazelcastJsonValue> values = map.values(predicate);
         modelBuilder.addRow();
         Stream.of(FIELDS).forEach(modelBuilder::addValue);
         values.stream()
+                .map(HazelcastJsonValue::toString)
                 .map(JSONObject::new)
                 .forEach(json -> {
                     modelBuilder.addRow();
