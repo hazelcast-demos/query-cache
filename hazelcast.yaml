@@ -1,0 +1,7 @@
+hazelcast:
+  map:
+    analytics:
+      indexes:
+        - type: HASH
+          attributes:
+            - "component"
