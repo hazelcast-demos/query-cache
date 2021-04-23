@@ -42,5 +42,10 @@
             <artifactId>json</artifactId>
             <version>20210307</version>
         </dependency>
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast-jdbc</artifactId>
+            <version>4.2</version>
+        </dependency>
     </dependencies>
 </project>
