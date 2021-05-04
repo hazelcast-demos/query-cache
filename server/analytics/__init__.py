@@ -91,6 +91,27 @@ class Analytics(Portable):
             'width': reader.read_int('scroll.width')
         }
 
+    def to_dic(self):
+        dic = {
+            'timestamp': self.timestamp,
+            'event': self.event,
+            'instant': self.instant,
+            'component': self.component,
+            'session': self.session,
+            'client': self.client,
+            'offset': self.offset,
+            'scroll': self.scroll,
+        }
+        if hasattr(self, 'value'):
+            dic['value'] = self.value
+        if hasattr(self, 'type'):
+            dic['type'] = self.type
+        if hasattr(self, 'x'):
+            dic['x'] = self.x
+        if hasattr(self, 'y'):
+            dic['y'] = self.y
+        return dic
+
 
 factory = {
     1: Analytics
